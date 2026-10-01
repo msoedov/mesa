@@ -2,7 +2,7 @@
 
 Get Mesa up and running in five steps.
 
-1. **Install Go** (1.21+): download from [go.dev/dl](https://go.dev/dl) or run `brew install go`
+1. **Install Go** (1.26+ per go.mod): download from [go.dev/dl](https://go.dev/dl) or run `brew install go`
 
 2. **Build the binary**:
 
