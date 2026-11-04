@@ -51,6 +51,7 @@ var RunnerModels = map[string][]string{
 		"opus",
 		"sonnet",
 		"haiku",
+		"fable",
 	},
 	RunnerGemini: {
 		"default",
@@ -68,11 +69,10 @@ var RunnerModels = map[string][]string{
 	},
 	RunnerCodex: {
 		"default",
-		"gpt-5.4-thinking",
-		"gpt-5.4-pro",
-		"gpt-5.4-instant",
-		"gpt-4o",
-		"o4-mini",
+		"gpt-6.1-sol",
+		"gpt-6-astra",
+		"gpt-6.1-terra",
+		"gpt-6-luna",
 	},
 	RunnerCopilot: {
 		"claude-sonnet-4.6",

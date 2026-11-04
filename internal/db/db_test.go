@@ -139,7 +139,7 @@ func TestRunMigrationsUpdatesLegacyDefaultTimeoutAgents(t *testing.T) {
 
 	stmts := []string{
 		`CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
-		`CREATE TABLE agents (id TEXT PRIMARY KEY, timeout_sec INTEGER NOT NULL DEFAULT 600)`,
+		`CREATE TABLE agents (id TEXT PRIMARY KEY, runner TEXT NOT NULL DEFAULT 'claude_code', model TEXT NOT NULL DEFAULT 'sonnet', timeout_sec INTEGER NOT NULL DEFAULT 600)`,
 		`CREATE TABLE runs (id TEXT PRIMARY KEY)`,
 		`CREATE TABLE api_keys (id TEXT PRIMARY KEY, agent_id TEXT, key_hash TEXT, prefix TEXT, revoked_at DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
 		`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
@@ -172,6 +172,67 @@ func TestRunMigrationsUpdatesLegacyDefaultTimeoutAgents(t *testing.T) {
 	}
 	if got != 900 {
 		t.Fatalf("custom timeout = %d, want 900", got)
+	}
+}
+
+func TestRunMigrationsMovesCodexAgentsOffRetiredModels(t *testing.T) {
+	tests := []struct {
+		name   string
+		runner string
+		model  string
+		want   string
+	}{
+		{"thinking", "codex", "gpt-5.4-thinking", "gpt-6.1-sol"},
+		{"pro", "codex", "gpt-5.4-pro", "gpt-6.1-sol"},
+		{"instant", "codex", "gpt-5.4-instant", "gpt-6-luna"},
+		{"gpt-4o", "codex", "gpt-4o", "gpt-6.1-sol"},
+		{"o4-mini", "codex", "o4-mini", "gpt-6.1-sol"},
+		{"default kept", "codex", "default", "default"},
+		{"empty kept", "codex", "", ""},
+		{"current kept", "codex", "gpt-6-astra", "gpt-6-astra"},
+		{"other runner kept", "copilot", "gpt-5.4", "gpt-5.4"},
+	}
+
+	path := filepath.Join(t.TempDir(), "codex.db")
+	sqlDB, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer sqlDB.Close()
+
+	stmts := []string{
+		`CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+		`CREATE TABLE agents (id TEXT PRIMARY KEY, runner TEXT NOT NULL, model TEXT NOT NULL)`,
+	}
+	for i := 1; i <= 29; i++ {
+		stmts = append(stmts, `INSERT INTO schema_migrations (version) VALUES (`+strconv.Itoa(i)+`)`)
+	}
+	for _, stmt := range stmts {
+		if _, err := sqlDB.Exec(stmt); err != nil {
+			t.Fatalf("exec %q: %v", stmt, err)
+		}
+	}
+	for _, tt := range tests {
+		if _, err := sqlDB.Exec(`INSERT INTO agents (id, runner, model) VALUES (?, ?, ?)`, tt.name, tt.runner, tt.model); err != nil {
+			t.Fatalf("insert %s: %v", tt.name, err)
+		}
+	}
+
+	d := &DB{DB: sqlDB}
+	if err := d.RunMigrations(); err != nil {
+		t.Fatalf("run migrations: %v", err)
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			if err := d.QueryRow(`SELECT model FROM agents WHERE id = ?`, tt.name).Scan(&got); err != nil {
+				t.Fatalf("query: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("model = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 

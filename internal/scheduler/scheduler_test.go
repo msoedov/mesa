@@ -162,7 +162,7 @@ func TestRunAudit(t *testing.T) {
 
 	// 3. Configuration file support (.mesa.json)
 	jsonPath := ".mesa.json"
-	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-5.4-thinking"}}`
+	jsonContent := `{"audit": {"runner": "codex", "model": "gpt-6.1-sol"}}`
 	os.WriteFile(jsonPath, []byte(jsonContent), 0644)
 	t.Cleanup(func() { os.Remove(jsonPath) })
 
@@ -171,7 +171,7 @@ func TestRunAudit(t *testing.T) {
 		t.Fatalf("RunAudit json config: %v", err)
 	}
 	ar3, _ := d.GetAuditRun(runID3)
-	if ar3.Runner != "codex" || ar3.Model != "gpt-5.4-thinking" {
+	if ar3.Runner != "codex" || ar3.Model != "gpt-6.1-sol" {
 		t.Errorf("expected json config runner/model, got %s/%s", ar3.Runner, ar3.Model)
 	}
 	os.Remove(jsonPath) // Remove to test yaml fallback
@@ -193,12 +193,12 @@ func TestRunAudit(t *testing.T) {
 	os.Remove(ymlPath)
 
 	// 4. UI overrides configuration file
-	runID4, err := s.RunAudit(1, 1, "", "codex", "gpt-5.4-thinking")
+	runID4, err := s.RunAudit(1, 1, "", "codex", "gpt-6.1-sol")
 	if err != nil {
 		t.Fatalf("RunAudit override: %v", err)
 	}
 	ar4, _ := d.GetAuditRun(runID4)
-	if ar4.Runner != "codex" || ar4.Model != "gpt-5.4-thinking" {
+	if ar4.Runner != "codex" || ar4.Model != "gpt-6.1-sol" {
 		t.Errorf("expected UI override runner/model, got %s/%s", ar4.Runner, ar4.Model)
 	}
 
@@ -599,7 +599,7 @@ func TestCodexDispatch(t *testing.T) {
 
 	agent := &models.Agent{
 		Name: "Codex", Slug: "codex", ArchetypeSlug: "worker",
-		Runner: "codex", Model: "o4-mini",
+		Runner: "codex", Model: "gpt-6.1-sol",
 		WorkingDir: t.TempDir(), MaxTurns: 10, TimeoutSec: 10, Active: true,
 	}
 	d.CreateAgent(agent)
