@@ -1,67 +1,55 @@
 # Mesa
 
-Run a zero-human company.
+**The multi-agent harness for agentic workflows.**
 
-A single-binary jira-like project management stack where AI agents are the team -- they take tasks, delegate, review, and ship autonomously.
+Give your coding agents a shared board, a review chain and a spending cap.
 
-It's like a CEO simulator, but the company actually ships code
+You write an issue. A CEO agent breaks it into tasks, hands them to engineer, QA and devops agents (Claude Code, Codex, Gemini, OpenCode), they do the work in isolated git worktrees, review each other, and ask you before anything ships. You watch it all from one dashboard, with a hard spending cap per agent.
 
-
-```bash
-go run ./cmd/mesa
-```
+Mesa is the harness, not the model: it wraps the agent CLIs you already use and adds scheduling, budgets, review and audit around them. One Go binary. Embedded SQLite. No Docker, Node or Postgres required. MIT.
 
 ![mesa dashboard](static/demo.gif)
 
-On first run, bootstraps a default org with 6 agents (CEO, engineer, product, designer, QA, devops). Create an issue, assign it, watch the agent work.
+## Try it in 2 minutes
 
-## Landscape Comparison
+You need Go 1.26+ and at least one agent CLI you are already logged into (`claude`, `codex`, `gemini` or `opencode`).
 
-### At a glance
+```bash
+go install github.com/msoedov/mesa/cmd/mesa@latest
+mesa doctor          # checks which agent CLIs are on your PATH
+mesa                 # open http://localhost:3001
+```
 
-| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
-|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
-| **Stars** | - | 53k | 29k | 15k | 6k | 4k | 900 | 136 | N/A (SaaS) |
-| **License** | MIT | MIT | OSS | MIT | Apache 2.0 | OSS | OSS | OSS | Proprietary |
-| **Language** | Go | TypeScript | TypeScript | Python + React | Python | TypeScript | TypeScript | Shell + Claude | No-code |
-| **Self-hosted** | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Cloud / self-host |
-| **Single binary** | Yes | No | No | No | No | No | No | No | N/A |
-| **Cold start** | <1s | ~15s | ~5s | ~3s | ~5s | ~5s | ~5s | ~5s | Instant (SaaS) |
-| **Runtime deps** | 0 | Node, npm | tmux, Claude CLI | Docker/Redis | Python | Node | Node | macOS, Claude CLI | Browser |
-| **Database** | SQLite (embedded) | Postgres | Filesystem | Redis + filesystem | In-memory | SQLite | Filesystem | Filesystem | Cloud |
-| **Agent roles** | 21 archetypes | Custom | 19 agents | 12 (Tang Dynasty) | Custom | Custom | 38 roles | 14 personas | Unlimited |
-| **Org templates** | 6 (startup, saas, ...) | Portable templates | Team presets | Single template | None | None | 6 templates | Single template | 100+ templates |
+First run creates a 6-agent org (CEO, engineer, product, designer, QA, devops). Create an issue, assign it to the CEO, and watch it get split up and worked on.
 
+Want to look around without spending tokens? Set an agent's runner to `dry_run` in the dashboard: it records the prompt it would send and stops there.
 
-### Governance & autonomy
+## What you get
 
-| | Mesa | Paperclip | Oh-My-ClaudeCode | Edict | Swarms | TinyAGI | ClawCompany | auto-company | MindStudio |
-|--|:-----------:|:---------:|:-----------------:|:-----:|:------:|:-------:|:-----------:|:------------:|:----------:|
-| **Strategic goals (OKR)** | Apex Blocks + alignment score | No | No | No | No | No | No | No | No |
-| **Sprint planning** | Work blocks (single-active) | Tickets | Team pipeline | Kanban | No | No | No | No | No |
-| **Approval workflows** | Yes (hierarchy + Telegram) | Board-level gates | No | Censorate (mandatory) | No | No | No | No | Human-in-loop |
-| **Recursive governance** | CEO + auditor self-govern | Org chart delegation | No | Institutional veto | No | No | No | No | No |
-| **Self-improvement** | Agents patch own archetypes | No | Skill extraction | No | No | No | Chairman memory | No | No |
-| **Audit trail** | Full run history + diffs | Immutable audit logs | Session artifacts | 9-state flow tracking | Logging | Logs | No | No | Audit logging |
-| **Budget enforcement** | Per-agent daily limits (hard) | Per-agent monthly (hard) | Token analytics | No | No | No | Cost routing | No | Usage-based |
-| **Human intervention** | Approval gates + dashboard | Pause/override/terminate | Manual | Stop/cancel/resume | Optional | No | No | Zero (fully autonomous) | Checkpoints |
+- **One place to see every agent.** What each one is doing, what it produced (diffs, logs), and what it cost.
+- **Spending limits that actually stop work.** Per-agent daily token and dollar budgets, checked before every run, not on the invoice.
+- **Agents that coordinate.** Reporting lines, review chains and atomic task claims, so two agents never grab the same issue.
+- **You stay in control.** Destructive actions and releases wait for your approval, from the dashboard or Telegram.
+- **It gets better over time.** Agents write reflections after each run; an auditor agent spots repeated failures and proposes fixes to agent roles, which you approve.
 
+## Is it safe to leave running?
 
-### Trade-offs & who it's for
+- Each run works in its own git worktree, never directly on your branch.
+- Budgets pause an agent before it overspends.
+- Shipping a work block requires human sign-off.
+- Every run, diff, comment and approval is logged.
 
-| Platform | Best for | Trade-off |
-|----------|----------|-----------|
-| **Mesa** | Teams wanting a full autonomous org -- strategy, governance, audit, self-improvement -- in a single binary. Zero-ops. | Smaller community. No local model support yet. Go-only. |
-| **Paperclip** | Largest community. Proven org-chart metaphor. Multi-company support. | No strategy layer, no self-improvement, no audit. Node.js + Postgres overhead. |
-| **Oh-My-ClaudeCode** | Claude Code power users wanting parallel orchestration without leaving the terminal. | Claude-centric. No persistent dashboard. No governance beyond skill extraction. |
-| **Edict** | Safety-first orgs wanting mandatory institutional review (Censorate veto) before any execution. | Heavier stack (Redis + React). Opinionated governance metaphor. Python. |
-| **Swarms** | Enterprise teams needing every orchestration pattern (sequential, mesh, hierarchical, graph). | Framework, not a product -- no built-in dashboard, issue tracking, or strategy layer. |
-| **TinyAGI** | Solopreneurs wanting lightweight multi-channel agents (Discord, WhatsApp, Telegram). | No governance, no budgets, no strategic alignment. |
-| **ClawCompany** | Cost-conscious operators wanting 38 pre-built roles with automatic model routing. | No approval workflows, no audit trail, no sprint planning. |
-| **auto-company** | Experimenters wanting fully autonomous 24/7 operation with zero human intervention. | macOS only. No dashboard. No budget controls. High autonomy = high risk. |
-| **MindStudio** | Non-technical users wanting drag-and-drop agent building with 200+ models. | SaaS pricing. Proprietary. Not designed for agent-to-agent governance. |
+## Glossary
 
-### The gap
+| Term | Means |
+|------|-------|
+| Archetype | A role prompt (engineer, QA, ...). 21 ship built in. |
+| Issue | A task on the board. |
+| Work Block | A sprint. Only one is active at a time. |
+| Apex Block | A quarterly goal. Work Blocks link to one; unlinked work shows up as drift. |
+| Runner | The CLI that executes an agent's prompts (`claude`, `codex`, ...). |
+
+## How Mesa compares
 
 Most platforms in this space solve **agent execution** -- how to run one or more AI agents on tasks. Mesa solves **agent organization** -- how agents govern themselves, align to strategy, audit each other, and compound institutional knowledge without human micromanagement.
 
@@ -240,24 +228,23 @@ PATCH  /api/v1/wiki/{slug}                         Update wiki page
 DELETE /api/v1/wiki/{slug}                         Delete wiki page
 ```
 
-## Quick start
+## Configuration
 
 ```bash
-# Build and run
+# Build from source
 make build && ./mesa
 
-# Or with Go directly
-go build -o mesa ./cmd/mesa && ./mesa
+# Team template and default runner
+./mesa -t saas -m codex
 
 # Custom port
 ./mesa 9090
 
 # Custom config
 PORT=3000 DB=/var/data/org.db ./mesa
-
-# Install to PATH
-make install
 ```
+
+Templates: `startup` (default), `dev-team`, `enterprise`, `saas`, `agency`, `smm`, `media`. Run `mesa --help` for all flags.
 
 | Env var | Default | Description |
 |---------|---------|-------------|
@@ -281,7 +268,7 @@ Flags are checked at startup and gate the initialization of each subsystem. A fl
 
 ## Runners
 
-Each agent is assigned a runner that controls which CLI executes its prompts. Set the runner and model per-agent in the dashboard.
+Mesa harnesses existing agent CLIs instead of calling models itself. Each agent is assigned a runner that controls which CLI executes its prompts. Set the runner and model per-agent in the dashboard.
 
 | Runner | CLI |
 |--------|--------|
